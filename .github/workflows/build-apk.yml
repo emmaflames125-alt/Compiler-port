@@ -1,0 +1,53 @@
+name: Build Android APK from PWA
+
+on:
+  workflow_dispatch:   # ← You can manually trigger it from GitHub
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install PWABuilder CLI
+        run: npm install -g @pwabuilder/cli
+
+      - name: Generate Android Project (TWA)
+        run: |
+          pwabuilder generate \
+            --url https://emmaflames125-alt.github.io/Compiler-port/ \
+            --platform android \
+            --output ./android-app \
+            --package-id com.chimex.fxesplus \
+            --app-name "fxES+ Compiler" \
+            --short-name "fxES+"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build APK
+        working-directory: ./android-app
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fxesplus-compiler-apk
+          path: ./android-app/app/build/outputs/apk/release/*.apk
